@@ -4,7 +4,7 @@
 import { Router } from "express"; // Router Express untuk kelompok route
 import { randomBytes } from "crypto"; // Generator byte acak untuk state
 import { query } from "../db/pool.js"; // Pool + helper query database
-import { config } from "../config.js"; // Konfigurasi env
+import { getClientOrigin } from "../config.js"; // Helper origin frontend (dari request)
 import { buildConsentURL, exchangeCode, getUserInfo } from "../services/google.service.js"; // Google OAuth functions
 import {
   signAccessToken,
@@ -60,14 +60,14 @@ router.get(
     // Validasi CSRF: state harus cocok dengan yang dikirim sebelumnya
     if (error) {
       // User menolak izin di halaman Google
-      return res.redirect(`${config.clientUrl}/login?error=denied`); // Redirect ke login dengan pesan
+      return res.redirect(`${getClientOrigin(req)}/login?error=denied`); // Redirect ke login dengan pesan
     }
 
     if (!state || !storedState || state !== storedState) {
       // State tidak cocok / cookie hilang (stale flow)
       // Bukan potensi attack serius — redirect ke login dengan pesan halus
       // (bukan 400 keras yang membuat user bingung)
-      return res.redirect(`${config.clientUrl}/login?error=stale`); // Kembali ke login
+      return res.redirect(`${getClientOrigin(req)}/login?error=stale`); // Kembali ke login
     }
 
     // Hapus cookie state setelah digunakan (sekali pakai)
@@ -112,7 +112,7 @@ router.get(
     setTokenCookies(res, accessToken, refreshToken); // httpOnly, sameSite lax
 
     // Redirect ke dashboard setelah login sukses
-    res.redirect(config.clientUrl); // Ke root app
+    res.redirect(getClientOrigin(req)); // Ke root app (origin asli dari request)
   }),
 );
 

@@ -48,3 +48,27 @@ export const config = {
   // Client URL (origin frontend)
   clientUrl: process.env.CLIENT_URL || "http://localhost:5173", // Default dev frontend
 };
+
+// ==========================================
+// HELPER: getClientOrigin(req)
+// Mengambil origin frontend yang benar untuk redirect.
+// Prioritas:
+//  1. CLIENT_URL env (jika di-set — production di Render)
+//  2. Header request (x-forwarded-host / host) — Vercel & proxy
+// Di Vercel, CLIENT_URL sering tidak di-set tapi host-nya tersedia di header.
+// ==========================================
+export function getClientOrigin(req) {
+  // Jika CLIENT_URL di-set (misal Render), pakai itu — lebih pasti
+  if (process.env.CLIENT_URL) return process.env.CLIENT_URL;
+
+  // Fallback: baca host dari request header
+  // Vercel set x-forwarded-host = domain asli yang diakses user
+  const proto = req.headers["x-forwarded-proto"] || (req.secure ? "https" : "http"); // http/https
+  const host = req.headers["x-forwarded-host"] || req.headers.host; // domain:port
+
+  // Jika ada host, bangun origin dari proto + host
+  if (host) return `${proto}://${host}`;
+
+  // Last resort: default dev
+  return "http://localhost:5173";
+}
