@@ -19,4 +19,4 @@ npm-debug.log*
 
 # Editor
 .idea/
-.vscode/
+.vscode/RENDER_ENV.md
