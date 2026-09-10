@@ -10,11 +10,12 @@ import pg from "pg"; // PostgreSQL client
 // ==========================================
 const { Pool } = pg; // Destructure class Pool dari modul pg
 
-// Konfigurasi untuk production (Render/Railway menuntut SSL)
-const sslConfig =
-  process.env.NODE_ENV === "production"
-    ? { rejectUnauthorized: false } // Render PG pakai self-signed cert - abaikan verifikasi
-    : undefined; // Dev lokal pakai koneksi biasa
+// Konfigurasi untuk production (Render/Railway/Neon menuntut SSL)
+// IsVercel → production runtime, Neon butuh SSL
+const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+const sslConfig = isProd
+  ? { rejectUnauthorized: false } // Managed PG pakai cert — abaikan verifikasi
+  : undefined; // Dev lokal pakai koneksi biasa
 
 // Buat pool koneksi baru
 export const pool = new Pool({

@@ -12,7 +12,10 @@ import "dotenv/config"; // Load variabel environment dari file .env
 const required = ["DATABASE_URL", "JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI", "CLIENT_URL"];
 
 // Hanya validasi ketat di production (dev bisa mulai tanpa semua env)
-if (process.env.NODE_ENV === "production") {
+// SKIP saat Vercel build: Vercel inject env hanya di runtime (serverless),
+// bukan saat build. Throw saat build = build gagal tanpa bisa jalankan app.
+const isVercel = process.env.VERCEL === "1"; // Deteksi Vercel environment
+if (process.env.NODE_ENV === "production" && !isVercel) {
   const missing = required.filter((key) => !process.env[key]); // Cari env yang kosong
   if (missing.length > 0) {
     // Jika ada yang kurang, throw error dengan pesan jelas (fail-fast)

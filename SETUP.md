@@ -159,54 +159,74 @@ Fitur:
 
 ---
 
-## 🚢 DEPLOY KE RENDER (Production)
+## 🚢 DEPLOY KE VERCEL + NEON (Production, Gratis 🔥)
 
-Rencana: **1 Web Service** (Express + built Vite) + **1 Managed Postgres**.
+Rencana: **Vercel** (hosting frontend + serverless backend) + **Neon** (Postgres gratis).
 
-### 6.1 Push repo ke GitHub
+Keuntungan vs Render:
+- **Gratis penuh** (tanpa kartu kredit)
+- Frontend & API di **satu domain** Vercel → cookie httpOnly jalan tanpa CORS
+- Express otomatis jadi serverless function lewat `api/index.js`
+
+### 6.1 Push repo ke GitHub (sudah selesai)
 ```bash
-git init
-git add .
-git commit -m "PriorityMatrix v2: OAuth + backend + analytics"
-gh repo create priority-matrix --public --push
+git remote add origin https://github.com/adryanshinta/priority-matrix.git
+git push -u origin main
 ```
 
-### 6.2 Buat Postgres di Render
-1. [render.com](https://render.com) → **New** → **PostgreSQL**
-2. Beri nama → **Create**
-3. Salin **Internal Database URL** (bukan external)
+### 6.2 Setup Neon Postgres (gratis)
+1. Daftar di [neon.tech](https://neon.tech) → **Sign up** (bisa login Google, **tanpa kartu**)
+2. Buat project pertama → pilih region terdekat (Singapore untuk kamu)
+3. Di dashboard, klik **Connect** → salin **Connection string** (format `postgresql://user:pass@ep-xxx.region.neon.tech/dbname`)
+4. Ganti `?sslmode` jika ada, sesuaikan
 
-### 6.3 Buat Web Service
-1. **New** → **Web Service** → connect repo GitHub
-2. Konfigurasi:
-   - **Build Command**: `npm install && npm run build`
-   - **Start Command**: `node server/index.js`
-3. **Environment Variables** — tambahkan semua dari `.env`:
-   ```
-   NODE_ENV=production
-   DATABASE_URL=<Internal DB URL dari 6.2>
-   JWT_ACCESS_SECRET=<hex_1>
-   JWT_REFRESH_SECRET=<hex_2>
-   GOOGLE_CLIENT_ID=<dari_google_cloud>
-   GOOGLE_CLIENT_SECRET=<dari_google_cloud>
-   GOOGLE_REDIRECT_URI=https://<app-nama>.onrender.com/api/auth/google/callback
-   CLIENT_URL=https://<app-nama>.onrender.com
-   ```
-4. **Deploy**
+### 6.3 Setup Vercel (gratis)
+1. Daftar di [vercel.com](https://vercel.com) → **Sign up** (bisa login GitHub, **tanpa kartu**)
+2. **Add New → Project** → pilih repo `priority-matrix` → **Import**
 
-### 6.4 Jalankan migrasi di production
-Render Service shell / local:
-```bash
-DATABASE_URL=<Internal_URL> NODE_ENV=production npm run db:migrate
+### 6.4 Konfigurasi Project di Vercel
+
+**Build Settings** (framework auto-detect seharusnya menangkap Vite):
+- **Framework Preset**: `Vite`
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
+
+**Environment Variables** (tab **Settings → Environment Variables**, tambahkan production):
+```
+DATABASE_URL=<Connection string Neon dari 6.2>
+JWT_ACCESS_SECRET=<hex_32_byte>
+JWT_REFRESH_SECRET=<hex_32_byte>
+GOOGLE_CLIENT_ID=<dari Google Cloud Console>
+GOOGLE_CLIENT_SECRET=<dari Google Cloud Console>
+GOOGLE_REDIRECT_URI=https://<nama-proyek>-<hash>.vercel.app/api/auth/google/callback
+CLIENT_URL=https://<nama-proyek>-<hash>.vercel.app
 ```
 
-### 6.5 Update Google redirect URI (PENTING)
-1. Kembali ke **Google Cloud Console** → Credentials → Client ID kamu
+> ⚠️ **Vercel otomatis set `NODE_ENV=production` dan `VERCEL=1`** — tidak perlu manual.
+
+> **Generate JWT secrets:**
+> `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` (jalankan 2x, beda hasil)
+
+### 6.5 Deploy + Migrasi
+1. Klik **Deploy** di Vercel → tunggu build selesai (~1-3 menit) → dapat URL `https://...vercel.app`
+2. **Migrasi database** — dari terminal lokal, arahkan ke Neon:
+   ```bash
+   DATABASE_URL="<Connection string Neon>" NODE_ENV=production npm run db:migrate
+   ```
+   (Schema dibuat langsung di Neon)
+
+### 6.6 Update Google redirect URI (PENTING)
+1. Buka [Google Cloud Console](https://console.cloud.google.com) → **Credentials** → Client ID kamu
 2. Tambahkan ke **Authorized redirect URIs**:
    ```
-   https://<app-nama>.onrender.com/api/auth/google/callback
+   https://<nama-proyek>.vercel.app/api/auth/google/callback
    ```
-3. Jika app masih "Testing", tambahkan test user atau **Publish** app
+3. Jika app masih berstatus **"Testing"**, tambahkan email kamu sebagai **Test user** (atau klik **Publish** agar semua bisa login)
+
+### 6.7 Test
+Buka URL Vercel kamu → login Google → dashboard muncul. ✅
+
+> 🔁 **Auto-deploy**: Setiap push ke `main` di GitHub, Vercel otomatis rebuild + redeploy.
 
 ### 6.6 Test
 Buka `https://<app-nama>.onrender.com` → login Google → dashboard.

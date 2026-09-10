@@ -38,10 +38,13 @@ app.use("/api/tasks", taskRoutes); // Route /api/tasks/* → CRUD task
 app.use("/api/analytics", analyticsRoutes); // Route /api/analytics → analytics
 
 // ==========================================
-// STATIC + SPA FALLBACK (Production)
+// STATIC + SPA FALLBACK (Production / Non-Vercel)
 // Express serve hasil build Vite (frontend) + API
+// Di Vercel, static ditangani Vercel (levat rewrites) —
+// jadi skip block ini jika environment Vercel (VERCEL=1).
 // ==========================================
-if (hasDist) {
+const isVercel = process.env.VERCEL === "1"; // Deteksi Vercel serverless environment
+if (hasDist && !isVercel) {
   // Serve file statis dari folder dist
   app.use(express.static(distPath)); // CSS, JS, gambar dll
 
