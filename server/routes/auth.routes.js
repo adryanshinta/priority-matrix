@@ -37,6 +37,7 @@ router.get(
     res.cookie("oauth_state", state, {
       httpOnly: true, // Tidak bisa diakses JavaScript
       sameSite: "lax", // Proteksi CSRF
+      secure: process.env.NODE_ENV === "production", // HTTPS di produksi (Vercel)
       maxAge: 10 * 60 * 1000, // 10 menit
       path: "/", // Berlaku di seluruh path
     });
@@ -62,9 +63,11 @@ router.get(
       return res.redirect(`${config.clientUrl}/login?error=denied`); // Redirect ke login dengan pesan
     }
 
-    if (!state || state !== storedState) {
-      // State tidak cocok = potensi CSRF attack
-      return res.status(400).json({ message: "Invalid state parameter" }); // Tolak request
+    if (!state || !storedState || state !== storedState) {
+      // State tidak cocok / cookie hilang (stale flow)
+      // Bukan potensi attack serius — redirect ke login dengan pesan halus
+      // (bukan 400 keras yang membuat user bingung)
+      return res.redirect(`${config.clientUrl}/login?error=stale`); // Kembali ke login
     }
 
     // Hapus cookie state setelah digunakan (sekali pakai)

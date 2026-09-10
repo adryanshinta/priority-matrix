@@ -35,6 +35,8 @@ export default function Login() {
     const params = new URLSearchParams(window.location.search); // Parse query
     if (params.get("error") === "denied") {
       setErrorMessage("Login dibatalkan. Silakan coba lagi."); // Pesan user menolak
+    } else if (params.get("error") === "stale") {
+      setErrorMessage("Sesi login kedaluwarsa. Silakan coba lagi."); // Pesan cookie hilang / session stale
     }
   }, []); // Hanya sekali saat mount
 
