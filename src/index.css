@@ -1,0 +1,8 @@
+/* Import base styles dari Tailwind */
+@tailwind base;
+
+/* Import component styles dari Tailwind */
+@tailwind components;
+
+/* Import utility classes dari Tailwind */
+@tailwind utilities;
