@@ -2,6 +2,7 @@
 // MIDDLEWARE: asyncHandler
 // Membungkus async route handler agar error otomatis diteruskan ke error handler
 // ==========================================
+
 export const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next); // Tangkap promise rejection → next(err)
 
@@ -9,6 +10,7 @@ export const asyncHandler = (fn) => (req, res, next) =>
 // MIDDLEWARE: errorHandler
 // Handler error sentral untuk semua route
 // ==========================================
+
 // eslint-disable-next-line no-unused-vars -- next diperlukan agar Express mengenali ini sebagai error handler
 export function errorHandler(err, req, res, next) {
   // Log error di server console

@@ -1,101 +1,153 @@
 // ==========================================
-// IMPORT MODULES & DEPENDENCIES
-// ==========================================
-import { useState } from "react"; // useState untuk state lokal form
-
-// ==========================================
 // COMPONENT: TaskForm
-// Form untuk menambah tugas baru ke dalam list
+// Form untuk menambah tugas baru.
+// Aman terhadap race condition: tombol disabled saat submit berjalan.
 // ==========================================
+
+import { useState } from "react";
+import { QUADRANT_KEYS, getQuadrant } from "../constants/quadrants";
+import { PlusIcon, CheckIcon, AlertIcon } from "./Icons";
+
 export default function TaskForm({ onSubmit }) {
-  // State untuk menyimpan judul tugas yang diketik user
-  const [inputTitle, setInputTitle] = useState(""); // Default string kosong
+  const [inputTitle, setInputTitle] = useState(""); // Judul tugas
+  const [inputQuadrant, setInputQuadrant] = useState("q1"); // Kuadran default: Q1
+  const [showSuccess, setShowSuccess] = useState(false); // Umpan balik sukses
+  const [submitting, setSubmitting] = useState(false); // Status submit
+  const [error, setError] = useState(""); // Pesan validasi
 
-  // State untuk menyimpan pilihan kuadran prioritas
-  const [inputQuadrant, setInputQuadrant] = useState("q1"); // Default ke Kuadran 1
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  // State untuk menampilkan animasi sukses
-  const [showSuccess, setShowSuccess] = useState(false); // Default tidak tampil
+    const trimmed = inputTitle.trim();
+    if (!trimmed) {
+      setError("Judul tugas wajib diisi");
+      return;
+    }
 
-  // Fungsi yang dijalankan saat form di-submit
-  const handleSubmit = (e) => {
-    e.preventDefault(); // Mencegah reload halaman default form
+    setError("");
+    setSubmitting(true);
 
-    if (!inputTitle.trim()) return; // Validasi: jangan tambah jika judul kosong
-
-    const newTask = {
-      id: Date.now(), // ID unik sementara berdasarkan timestamp
-      title: inputTitle, // Judul dari input user
-      quadrant: inputQuadrant, // Kuadran dari select dropdown
-      completed: false, // Default belum selesai
-    };
-
-    onSubmit(newTask); // Kirim tugas baru ke parent (App) via callback
-
-    setInputTitle(""); // Reset input judul ke kosong
-    setInputQuadrant("q1"); // Reset pilihan kuadran ke default
-
-    // Tampilkan animasi sukses singkat
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 1500);
+    try {
+      await onSubmit({ title: trimmed, quadrant: inputQuadrant });
+      setInputTitle("");
+      setInputQuadrant("q1");
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 1600);
+    } catch {
+      setError("Gagal menambahkan tugas. Coba lagi.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  // ==========================================
-  // RENDER UI (DARK MODE SUPPORT)
-  // ==========================================
   return (
-    <section className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm p-5 sm:p-6 rounded-2xl shadow-md border border-slate-200/60 dark:border-slate-700/60">
-      {/* Judul seksi form */}
-      <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
-        <span className="w-7 h-7 bg-sage-500 text-white rounded-lg flex items-center justify-center text-xs font-bold">
-          +
+    <section className="bg-white/80 dark:bg-slate-800/70 backdrop-blur-sm p-4 sm:p-6 rounded-2xl shadow-card border border-slate-200/60 dark:border-slate-700/60">
+      {/* Judul form */}
+      <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2.5">
+        <span className="w-8 h-8 bg-gradient-to-br from-sage-500 to-sage-600 text-white rounded-lg grid place-items-center shadow-sm">
+          <PlusIcon className="w-4 h-4" strokeWidth={2.4} />
         </span>
         Tambah Tugas Baru
       </h3>
 
-      {/* Form element */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {/* Input Judul Tugas */}
+        {/* Input judul */}
         <div>
-          <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wide">
+          <label
+            htmlFor="task-title"
+            className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wide"
+          >
             Nama Tugas
           </label>
           <input
+            id="task-title"
             type="text"
             value={inputTitle}
-            onChange={(e) => setInputTitle(e.target.value)}
+            onChange={(e) => {
+              setInputTitle(e.target.value);
+              if (error) setError("");
+            }}
             placeholder="Contoh: Menyelesaikan laporan bulanan..."
-            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-600 rounded-xl text-sm sm:text-base text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent transition-all duration-200"
+            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-600 rounded-xl text-sm sm:text-base text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent transition-all duration-200"
           />
         </div>
 
-        {/* Pilihan Kuadran Prioritas */}
+        {/* Pilihan kuadran (grid ikon) */}
         <div>
-          <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wide">
-            Pilih Kuadran Prioritas
-          </label>
-          <select
-            value={inputQuadrant}
-            onChange={(e) => setInputQuadrant(e.target.value)}
-            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-600 rounded-xl text-sm sm:text-base text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent transition-all duration-200"
-          >
-            <option value="q1">🔥 Kuadran 1: Urgent & Important (Lakukan Sekarang)</option>
-            <option value="q2">📅 Kuadran 2: Not Urgent & Important (Jadwalkan)</option>
-            <option value="q3">👥 Kuadran 3: Urgent & Not Important (Delegasikan)</option>
-            <option value="q4">🗑️ Kuadran 4: Not Urgent & Not Important (Hilangkan)</option>
-          </select>
+          <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wide">
+            Kuadran Prioritas
+          </span>
+          <div className="grid grid-cols-2 gap-2">
+            {QUADRANT_KEYS.map((key) => {
+              const q = getQuadrant(key);
+              const Icon = q.Icon;
+              const active = inputQuadrant === key;
+
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => setInputQuadrant(key)}
+                  aria-pressed={active}
+                  className={`flex items-center gap-2.5 p-2.5 sm:p-3 rounded-xl border text-left transition-all duration-200 disabled:opacity-60 ${
+                    active
+                      ? `${q.chip} ring-2 ring-sage-500/40 shadow-sm`
+                      : "border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700/40"
+                  }`}
+                >
+                  <span
+                    className={`w-7 h-7 rounded-lg grid place-items-center shrink-0 ${
+                      active
+                        ? "bg-white/70 dark:bg-slate-800/60"
+                        : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-xs sm:text-sm font-semibold leading-tight">
+                      Q{q.num} · {q.title}
+                    </span>
+                    <span className="block text-[10px] sm:text-[11px] opacity-70 leading-tight truncate">
+                      {q.subtitle}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Tombol Submit */}
+        {/* Pesan error */}
+        {error && (
+          <p className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
+            <AlertIcon className="w-4 h-4 shrink-0" />
+            {error}
+          </p>
+        )}
+
+        {/* Tombol submit */}
         <button
           type="submit"
-          className={`w-full font-medium py-2.5 px-4 rounded-xl transition-all duration-200 text-sm sm:text-base ${
+          disabled={submitting || !inputTitle.trim()}
+          className={`w-full inline-flex items-center justify-center gap-2 font-semibold py-2.5 px-4 rounded-xl transition-all duration-200 text-sm sm:text-base active:scale-[0.99] ${
             showSuccess
               ? "bg-green-500 text-white"
-              : "bg-gradient-to-r from-sage-500 to-sage-600 hover:from-sage-600 hover:to-sage-700 text-white shadow-md hover:shadow-lg"
-          }`}
+              : "bg-gradient-to-r from-sage-500 to-sage-600 hover:from-sage-600 hover:to-sage-700 text-white shadow-md hover:shadow-card-hover"
+          } ${submitting || !inputTitle.trim() ? "opacity-60 cursor-not-allowed" : ""}`}
         >
-          {showSuccess ? "✓ Tugas Ditambahkan!" : "Tambah Tugas"}
+          {showSuccess ? (
+            <>
+              <CheckIcon className="w-4 h-4" strokeWidth={2.6} /> Tugas Ditambahkan
+            </>
+          ) : submitting ? (
+            "Menambahkan..."
+          ) : (
+            <>
+              <PlusIcon className="w-4 h-4" strokeWidth={2.4} /> Tambah Tugas
+            </>
+          )}
         </button>
       </form>
     </section>

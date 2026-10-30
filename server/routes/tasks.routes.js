@@ -23,7 +23,7 @@ router.get(
   asyncHandler(async (req, res) => {
     // Query task berdasarkan user_id, urut dari terbaru
     const result = await query(
-      `SELECT id, title, quadrant, completed, created_at, completed_at
+      `SELECT id, title, quadrant, completed, created_at, completed_at, edited_at, updated_at
        FROM tasks WHERE user_id = $1 ORDER BY created_at DESC`,
       [req.userId], // Filter hanya milik user ini
     );
@@ -55,7 +55,8 @@ router.post(
     // Insert task baru ke database, kembalikan data task
     const result = await query(
       `INSERT INTO tasks (user_id, title, quadrant)
-       VALUES ($1, $2, $3) RETURNING id, title, quadrant, completed, created_at, completed_at`,
+       VALUES ($1, $2, $3)
+       RETURNING id, title, quadrant, completed, created_at, completed_at, edited_at, updated_at`,
       [req.userId, title.trim(), quadrant], // Parameter SQL
     );
 
@@ -65,24 +66,57 @@ router.post(
 
 // ==========================================
 // ROUTE: PATCH /api/tasks/:id
-// Update task (toggle completed) — analitis: set/clear completed_at
+// Update task:
+//   - completed (toggle selesai) → set/clear completed_at
+//   - title / quadrant (edit konten) → set edited_at
 // ==========================================
 router.patch(
   "/:id",
   asyncHandler(async (req, res) => {
     const { id } = req.params; // ID task dari URL
-    const { completed } = req.body; // Status baru (boolean)
+    const { completed, title, quadrant } = req.body || {}; // Field yang diubah
+
+    // Validasi kuadran jika dikirim
+    const validQuadrants = ["q1", "q2", "q3", "q4"];
+    if (quadrant !== undefined && !validQuadrants.includes(quadrant)) {
+      return res.status(400).json({ message: "Kuadran tidak valid" });
+    }
+
+    // Judul wajib tidak kosong bila dikirim
+    let newTitle;
+    if (title !== undefined) {
+      newTitle = String(title).trim();
+      if (!newTitle) {
+        return res.status(400).json({ message: "Judul tugas wajib diisi" });
+      }
+    }
+
+    // Deteksi apakah ini edit konten (mengubah judul/kuadran)
+    const isContentEdit = title !== undefined || quadrant !== undefined;
 
     // Pastikan task milik user ini (WHERE user_id)
     const result = await query(
-      // SQL: update completed + set completed_at (now() jika selesai, NULL jika belum)
       `UPDATE tasks
-       SET completed = $1,
-           completed_at = CASE WHEN $1 THEN now() ELSE NULL END,
+       SET title = COALESCE($1, title),
+           quadrant = COALESCE($2, quadrant),
+           completed = COALESCE($3, completed),
+           completed_at = CASE
+             WHEN $3::boolean IS NULL THEN completed_at
+             WHEN $3 THEN now()
+             ELSE NULL
+           END,
+           edited_at = CASE WHEN $4 THEN now() ELSE edited_at END,
            updated_at = now()
-       WHERE id = $2 AND user_id = $3
-       RETURNING id, title, quadrant, completed, created_at, completed_at`,
-      [completed, id, req.userId], // Parameter SQL
+       WHERE id = $5 AND user_id = $6
+       RETURNING id, title, quadrant, completed, created_at, completed_at, edited_at, updated_at`,
+      [
+        newTitle ?? null,
+        quadrant ?? null,
+        typeof completed === "boolean" ? completed : null,
+        isContentEdit,
+        id,
+        req.userId,
+      ],
     );
 
     if (result.rows.length === 0) {
@@ -153,7 +187,7 @@ router.post(
       const result = await query(
         `INSERT INTO tasks (user_id, title, quadrant, completed, created_at, completed_at)
          VALUES ($1, $2, $3, $4, $5, CASE WHEN $4 THEN now() ELSE NULL END)
-         RETURNING id, title, quadrant, completed, created_at, completed_at`,
+         RETURNING id, title, quadrant, completed, created_at, completed_at, edited_at, updated_at`,
         [req.userId, title.trim(), quadrant || "q1", completed || false, createdAt], // Parameter SQL
       );
 

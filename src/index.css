@@ -6,3 +6,88 @@
 
 /* Import utility classes dari Tailwind */
 @tailwind utilities;
+
+/* ==========================================
+   BASE / GLOBAL
+   ========================================== */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%; /* Cegah auto-zoom font di iOS saat rotate */
+    -webkit-tap-highlight-color: transparent; /* Hilangkan highlight tap di mobile */
+    scroll-behavior: smooth; /* Scroll halus saat navigasi anchor */
+  }
+
+  body {
+    /* Font sistem modern: cepat dimuat, tampilan bersih & profesional */
+    font-family:
+      "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+    font-feature-settings: "cv11", "ss01"; /* Alternatif karakter Inter yang lebih rapi */
+    @apply antialiased;
+  }
+
+  /* Gunakan tinggi penuh agar layout mobile stabil */
+  #root {
+    min-height: 100%;
+  }
+
+  /* Scrollbar tipis & profesional */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(139, 154, 110, 0.5) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: rgba(139, 154, 110, 0.45);
+    border-radius: 9999px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* ==========================================
+   AKSESIBILITAS: hormati preferensi reduced motion
+   ========================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================
+   UTILITY ANIMASI KHUSUS
+   ========================================== */
+@layer utilities {
+  /* Stagger animasi list: tunda kemunculan tiap item secara halus */
+  .animate-stagger > * {
+    animation: fade-in-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-stagger > *:nth-child(1) { animation-delay: 0.02s; }
+  .animate-stagger > *:nth-child(2) { animation-delay: 0.06s; }
+  .animate-stagger > *:nth-child(3) { animation-delay: 0.1s; }
+  .animate-stagger > *:nth-child(4) { animation-delay: 0.14s; }
+  .animate-stagger > *:nth-child(5) { animation-delay: 0.18s; }
+  .animate-stagger > *:nth-child(6) { animation-delay: 0.22s; }
+  .animate-stagger > *:nth-child(7) { animation-delay: 0.26s; }
+  .animate-stagger > *:nth-child(8) { animation-delay: 0.3s; }
+
+  /* Gradient teks untuk judul brand */
+  .text-gradient-sage {
+    background-image: linear-gradient(120deg, #8b9a6e, #5d6a48);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}

@@ -35,6 +35,53 @@ export default {
       transitionTimingFunction: {
         "spring": "cubic-bezier(0.34, 1.56, 0.64, 1)", // Overshoot lembut
       },
+      // Bayangan kartu bertingkat untuk kesan profesional
+      boxShadow: {
+        card: "0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px -6px rgba(15, 23, 42, 0.10)",
+        "card-hover": "0 2px 4px rgba(15, 23, 42, 0.05), 0 12px 28px -10px rgba(15, 23, 42, 0.18)",
+      },
+      // Keyframes animasi
+      keyframes: {
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "fade-in-up": {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in-down": {
+          "0%": { opacity: "0", transform: "translateY(-6px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "scale-in": {
+          "0%": { opacity: "0", transform: "scale(0.96)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        "slide-up-in": {
+          "0%": { opacity: "0", transform: "translateY(24px) scale(0.98)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        "check-pop": {
+          "0%": { transform: "scale(0.7)" },
+          "55%": { transform: "scale(1.18)" },
+          "100%": { transform: "scale(1)" },
+        },
+        "shimmer": {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+      },
+      // Utility animasi
+      animation: {
+        "fade-in": "fade-in 0.35s ease-out both",
+        "fade-in-up": "fade-in-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "fade-in-down": "fade-in-down 0.25s ease-out both",
+        "scale-in": "scale-in 0.22s ease-out both",
+        "slide-up-in": "slide-up-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "check-pop": "check-pop 0.28s ease-out",
+        shimmer: "shimmer 1.6s linear infinite",
+      },
     },
   },
   plugins: [], // Placeholder untuk plugin Tailwind tambahan

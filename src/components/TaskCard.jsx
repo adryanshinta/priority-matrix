@@ -1,44 +1,86 @@
 // ==========================================
 // COMPONENT: TaskCard
-// Card individual untuk menampilkan satu tugas
-// Digunakan di dalam QuadrantGrid untuk setiap kuadran
+// Kartu tugas untuk tampilan grid kuadran.
+// Menampilkan: status, judul, waktu dibuat/diedit, dan aksi edit/hapus.
 // ==========================================
-export default function TaskCard({ task, onToggle, onDelete }) {
-  // Render card tugas dengan checkbox, judul, dan tombol hapus
+
+import { getQuadrant } from "../constants/quadrants";
+import { formatDateTime, formatRelative } from "../utils/date";
+import { PencilIcon, TrashIcon, ClockIcon } from "./Icons";
+import CheckControl from "./CheckControl";
+
+export default function TaskCard({ task, onToggle, onEdit, onDelete }) {
+  const q = getQuadrant(task.quadrant); // Metadata warna/ikon kuadran
+
   return (
-    // Container card dengan dark mode
-    <div className={`flex items-center justify-between gap-2 p-2.5 sm:p-3 rounded-xl border transition-all duration-200 hover:shadow-sm ${
-      task.completed
-        ? "bg-white/50 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-700/60 opacity-60" // Selesai
-        : "bg-white/80 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 shadow-xs" // Aktif
-    }`}>
-      {/* Bagian kiri: checkbox + judul tugas */}
-      <div className="flex items-center gap-2 min-w-0 flex-1">
-        {/* Checkbox untuk toggle status */}
-        <input
-          type="checkbox"
+    <div
+      className={`group flex items-start gap-2.5 p-3 rounded-xl border transition-all duration-200 animate-fade-in-up ${
+        task.completed
+          ? "bg-white/50 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-700/60 opacity-70"
+          : "bg-white/90 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-card hover:-translate-y-px"
+      }`}
+    >
+      {/* Kontrol centang */}
+      <div className="pt-0.5">
+        <CheckControl
           checked={task.completed}
-          onChange={() => onToggle(task.id)}
-          className="shrink-0 w-4 h-4 text-sage-600 rounded focus:ring-sage-500 cursor-pointer"
+          onToggle={() => onToggle(task.id)}
+          size="sm"
+          label={`Tandai "${task.title}" sebagai ${task.completed ? "belum selesai" : "selesai"}`}
         />
-        {/* Judul tugas: coret jika selesai */}
-        <span className={`text-sm truncate ${
-          task.completed ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-slate-200"
-        }`}>
-          {task.title}
-        </span>
       </div>
-      {/* Tombol Hapus */}
-      <button
-        onClick={() => onDelete(task.id)}
-        className="shrink-0 text-slate-300 dark:text-slate-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded-lg transition-colors"
-        title="Hapus tugas"
-      >
-        {/* Ikon X */}
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
+
+      {/* Judul + keterangan waktu */}
+      <div className="min-w-0 flex-1">
+        <p
+          className={`text-sm leading-snug break-words ${
+            task.completed
+              ? "line-through text-slate-400 dark:text-slate-500"
+              : "text-slate-800 dark:text-slate-100"
+          }`}
+        >
+          {task.title}
+        </p>
+
+        {/* Meta: waktu dibuat & diedit */}
+        <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-slate-400 dark:text-slate-500">
+          <span className="inline-flex items-center gap-1" title={formatDateTime(task.created_at)}>
+            <ClockIcon className="w-3 h-3" />
+            Dibuat {formatRelative(task.created_at)}
+          </span>
+          {task.edited_at && (
+            <span
+              className="inline-flex items-center gap-1"
+              title={formatDateTime(task.edited_at)}
+            >
+              <PencilIcon className="w-3 h-3" />
+              Diedit {formatRelative(task.edited_at)}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Aksi */}
+      <div className="flex items-center gap-0.5 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity duration-200">
+        <button
+          type="button"
+          onClick={() => onEdit(task)}
+          className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-sage-700 dark:hover:text-sage-300 hover:bg-sage-50 dark:hover:bg-slate-700 transition-colors"
+          title="Edit tugas"
+          aria-label={`Edit "${task.title}"`}
+        >
+          <PencilIcon className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(task.id)}
+          className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+          title="Hapus tugas"
+          aria-label={`Hapus "${task.title}"`}
+        >
+          <TrashIcon className="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
   );
 }

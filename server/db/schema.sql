@@ -8,17 +8,20 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ==========================================
 -- TABEL: users
--- Menyimpan data pengguna dari Google OAuth
+-- Menyimpan data pengguna dari Google OAuth dan/atau login password.
+-- Satu email = satu akun (OAuth & password digabung berdasarkan email).
 -- ==========================================
 CREATE TABLE IF NOT EXISTS users (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- ID unik UUID otomatis
-  google_id  TEXT UNIQUE NOT NULL, -- ID pengguna dari Google (uniqueness untuk deteksi login berulang)
-  email      TEXT UNIQUE NOT NULL, -- Email dari Google (uniqueness untuk autentikasi)
-  name       TEXT NOT NULL, -- Nama lengkap pengguna
-  avatar_url TEXT, -- URL foto profil dari Google
-  dark_mode  BOOLEAN NOT NULL DEFAULT FALSE, -- Preferensi tema pengguna (dark/light)
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(), -- Waktu akun dibuat
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now() -- Waktu terakhir diupdate
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- ID unik UUID otomatis
+  google_id     TEXT UNIQUE, -- ID pengguna dari Google (NULL jika daftar via password)
+  email         TEXT UNIQUE NOT NULL, -- Email (unik, kunci penggabungan akun OAuth & password)
+  username      TEXT, -- Username opsional untuk login (unik, case-insensitive)
+  password_hash TEXT, -- Hash password (scrypt). NULL jika akun hanya via Google
+  name          TEXT NOT NULL, -- Nama lengkap pengguna
+  avatar_url    TEXT, -- URL foto profil dari Google
+  dark_mode     BOOLEAN NOT NULL DEFAULT FALSE, -- Preferensi tema pengguna (dark/light)
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(), -- Waktu akun dibuat
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now() -- Waktu terakhir diupdate
 );
 
 -- ==========================================
@@ -34,6 +37,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   completed    BOOLEAN NOT NULL DEFAULT FALSE, -- Status selesai/belum
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(), -- Waktu task dibuat
   completed_at TIMESTAMPTZ, -- Waktu task diselesaikan (NULL jika belum selesai) - kunci analytics
+  edited_at    TIMESTAMPTZ, -- Waktu task terakhir di-edit (NULL jika belum pernah diedit)
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT now() -- Waktu terakhir diupdate
 );
 
@@ -60,3 +64,23 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 
 -- Index untuk mempercepat lookup refresh token per user
 CREATE INDEX IF NOT EXISTS idx_refresh_user ON refresh_tokens (user_id);
+
+-- ==========================================
+-- MIGRASI (idempotent) untuk database yang sudah ada
+-- Aman dijalankan berulang kali.
+-- ==========================================
+
+-- Akun password tidak punya google_id → kolom harus boleh NULL
+ALTER TABLE users ALTER COLUMN google_id DROP NOT NULL;
+
+-- Kolom baru untuk autentikasi manual (password)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT;
+
+-- Kolom baru pada tasks untuk melacak waktu edit
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
+
+-- Username unik tanpa peduli huruf besar/kecil (partial: username boleh NULL)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_lower
+  ON users (lower(username))
+  WHERE username IS NOT NULL;

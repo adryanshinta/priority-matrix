@@ -1,80 +1,110 @@
 // ==========================================
-// IMPORT MODULES & DEPENDENCIES
+// CONTEXT: DarkMode
+// Preferensi tema (dark / light), tersimpan di database (jika login)
+// dan localStorage (fallback).
 // ==========================================
-import { createContext, useContext, useState, useEffect } from "react"; // React hooks untuk context dan state
 
-// ==========================================
-// CREATE CONTEXT
-// Membuat React Context untuk dark mode
-// ==========================================
-const DarkModeContext = createContext(); // Buat context baru dengan default undefined
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useAuth } from "./AuthContext";
 
-// ==========================================
-// CUSTOM HOOK: useDarkMode
-// Hook untuk mengakses dark mode state dari component manapun
-// ==========================================
+const DarkModeContext = createContext();
+
 export function useDarkMode() {
-  const context = useContext(DarkModeContext); // Ambil value dari context
-  if (!context) { // Jika hook dipanggil di luar Provider
-    throw new Error("useDarkMode harus digunakan di dalam DarkModeProvider"); // Lempar error
+  const context = useContext(DarkModeContext);
+  if (!context) {
+    throw new Error("useDarkMode harus digunakan di dalam DarkModeProvider");
   }
-  return context; // Kembalikan { isDark, toggle }
+  return context;
 }
 
-// ==========================================
-// PROVIDER COMPONENT
-// Membungkus aplikasi dan menyediakan dark mode state
-// ==========================================
 export function DarkModeProvider({ children }) {
-  // State untuk menyimpan status dark mode
-  // // TODO: API_INTEGRATION_POINT - Ambil preferensi dark mode dari user profile di database
+  const auth = useAuth();
+  const { user, loading: authLoading } = auth;
+
+  // Urutan prioritas:
+  //  1. Dark mode dari server (jika user login & data sudah di-load)
+  //  2. localStorage (untuk guest/non-login atau sebelum user loaded)
+  //  3. preferensi sistem (prefers-color-scheme)
   const [isDark, setIsDark] = useState(() => {
-    // Cek localStorage terlebih dahulu untuk preferensi yang tersimpan
-    const saved = localStorage.getItem("dark_mode"); // Ambil dari localStorage
-    if (saved !== null) { // Jika ada data tersimpan
-      return JSON.parse(saved); // Gunakan nilai tersimpan
+    if (user && user.dark_mode !== undefined) {
+      return Boolean(user.dark_mode);
     }
-    // Jika belum ada, cek preferensi sistem operasi user
-    return window.matchMedia("(prefers-color-scheme: dark)").matches; // true jika sistem gelap
+    const saved = localStorage.getItem("dark_mode");
+    if (saved !== null) {
+      return JSON.parse(saved);
+    }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
   });
 
-  // Effect untuk meng-toggle class "dark" di element <html>
+  // Sinkronkan class <html> & localStorage saat tema berubah
   useEffect(() => {
-    const html = document.documentElement; // Ambil element <html>
-    if (isDark) { // Jika dark mode aktif
-      html.classList.add("dark"); // Tambahkan class "dark"
-    } else { // Jika light mode
-      html.classList.remove("dark"); // Hapus class "dark"
+    const html = document.documentElement;
+    if (isDark) {
+      html.classList.add("dark");
+    } else {
+      html.classList.remove("dark");
     }
-    // // TODO: API_INTEGRATION_POINT - Simpan preferensi dark mode ke user profile di database
-    localStorage.setItem("dark_mode", JSON.stringify(isDark)); // Simpan ke localStorage
-  }, [isDark]); // Jalankan ulang saat isDark berubah
+    localStorage.setItem("dark_mode", JSON.stringify(isDark));
+  }, [isDark]);
 
-  // Effect untuk mendengarkan perubahan preferensi sistem
+  // Dengarkan perubahan preferensi sistem operasi.
+  // Update hanya diterapkan jika user belum pernah mengatur tema secara manual
+  // (tidak ada nilai di localStorage), sehingga tidak mengabaikan pilihan user.
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)"); // Buat media query listener
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     const handleChange = (e) => {
-      // Hanya update jika user belum pernah set manual (tidak ada di localStorage)
-      if (localStorage.getItem("dark_mode") === null) { // Cek localStorage
-        setIsDark(e.matches); // Update sesuai preferensi sistem baru
+      const saved = localStorage.getItem("dark_mode");
+      if (saved === null) {
+        setIsDark(e.matches);
       }
     };
 
-    mediaQuery.addEventListener("change", handleChange); // Tambahkan listener
-    return () => mediaQuery.removeEventListener("change", handleChange); // Cleanup saat unmount
-  }, []); // Hanya jalan sekali saat mount
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
 
-  // Fungsi untuk toggle dark mode
-  const toggle = () => setIsDark((prev) => !prev); // Balik nilai isDark
+  // Patch ke server saat tema berubah (hanya jika login)
+  const syncDarkMode = useCallback(
+    async (darkMode) => {
+      if (!user) return;
 
-  // ==========================================
-  // RENDER PROVIDER
-  // ==========================================
+      try {
+        const res = await fetch("/api/auth/me", {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ dark_mode: darkMode }),
+        });
+
+        if (!res.ok) {
+          console.warn("Gagal menyinkronkan dark mode ke server:", res.status);
+        }
+      } catch {
+        // Jangan blokir UI jika network gagal
+      }
+    },
+    [user],
+  );
+
+  // Kirim ke server setiap kali isDark berubah (non-blocking).
+  useEffect(() => {
+    if (!authLoading && user) {
+      syncDarkMode(isDark);
+    }
+  }, [isDark, authLoading, user, syncDarkMode]);
+
+  const toggle = useCallback(() => {
+    setIsDark((prev) => {
+      const next = !prev;
+      syncDarkMode(next);
+      return next;
+    });
+  }, [syncDarkMode]);
+
   return (
-    // Context Provider membungkus children dengan value
     <DarkModeContext.Provider value={{ isDark, toggle }}>
-      {children} {/* Render komponen anak */}
+      {children}
     </DarkModeContext.Provider>
   );
 }
