@@ -9,6 +9,11 @@ dist-ssr/
 .env
 .env.local
 .env.production
+.env.production.local
+.env*.local
+
+# Vercel CLI
+.vercel
 
 # Logs
 *.log

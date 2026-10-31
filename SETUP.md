@@ -280,6 +280,8 @@ Buka `https://<app-nama>.onrender.com` → login Google → dashboard.
 | Masalah | Solusi |
 |---------|--------|
 | `DATABASE_URL tidak ditemukan` | Pastikan `.env` ada di root project |
+| `relation "users" does not exist` (42P01) | Database baru belum dimigrasi. Jalankan `npm run db:migrate` dengan `DATABASE_URL` database tersebut |
+| `SELF_SIGNED_CERT_IN_CHAIN` | `sslmode` di URL menimpa opsi SSL. Sudah ditangani `server/db/connection.js`; pastikan kode terbaru sudah ter-deploy |
 | `connect ECONNREFUSED 5432` | Pastikan PostgreSQL berjalan |
 | `Invalid state parameter` | Hapus history browser / refresh |
 | Login redirect loop | Cek `GOOGLE_REDIRECT_URI` persis dengan yang di-register Google |
