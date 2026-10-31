@@ -178,7 +178,8 @@ git push -u origin main
 1. Daftar di [neon.tech](https://neon.tech) → **Sign up** (bisa login Google, **tanpa kartu**)
 2. Buat project pertama → pilih region terdekat (Singapore untuk kamu)
 3. Di dashboard, klik **Connect** → salin **Connection string** (format `postgresql://user:pass@ep-xxx.region.neon.tech/dbname`)
-4. Ganti `?sslmode` jika ada, sesuaikan
+4. Salin apa adanya (termasuk `?sslmode=require` jika ada) — aplikasi
+   menormalkan parameter SSL otomatis, jadi tidak perlu diubah manual
 
 ### 6.3 Setup Vercel (gratis)
 1. Daftar di [vercel.com](https://vercel.com) → **Sign up** (bisa login GitHub, **tanpa kartu**)

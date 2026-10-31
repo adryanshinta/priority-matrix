@@ -5,26 +5,14 @@
 
 import "dotenv/config";
 import pg from "pg";
+import { buildConnectionConfig } from "./connection.js";
 
 const { Pool } = pg;
 
-// Production runtime wajib SSL (Neon, Render, Railway, dan managed PG lain).
-// Vercel build: VERCEL=1 berarti production serverless → SSL juga wajib.
-// Development lokal: tanpa SSL (koneksi localhost).
-const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
-
-const poolConfig = {
-  connectionString: process.env.DATABASE_URL,
-};
-
-if (isProduction) {
-  poolConfig.ssl = {
-    rejectUnauthorized: false, // Managed PG menggunakan sertifikat — abaikan verifikasi
-  };
-}
-
-// Buat pool koneksi baru
-export const pool = new Pool(poolConfig);
+// Normalisasi DATABASE_URL + opsi SSL di connection.js.
+// Penting: `sslmode` pada URL tidak boleh dibiarkan karena bisa menimpa
+// opsi SSL kita dan memicu error SELF_SIGNED_CERT_IN_CHAIN.
+export const pool = new Pool(buildConnectionConfig());
 
 // Helper query yang bisa dipakai di route/Service.
 export const query = (text, params) => pool.query(text, params);

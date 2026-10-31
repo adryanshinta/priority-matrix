@@ -6,6 +6,7 @@ import { readFileSync } from "fs"; // Baca file schema.sql dari disk
 import { dirname, join } from "path"; // Utilitas path untuk resolusi direktori
 import { fileURLToPath } from "url"; // Konversi URL file ke path (ESM)
 import pg from "pg"; // PostgreSQL client
+import { buildConnectionConfig } from "../server/db/connection.js"; // Normalisasi URL + SSL
 
 // ==========================================
 // VARIABEL KONFIGURASI PATH
@@ -26,8 +27,10 @@ async function runMigration() {
     process.exit(1); // Keluar dengan kode error
   }
 
-  // Buat client PostgreSQL baru
-  const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  // Buat client PostgreSQL baru.
+  // buildConnectionConfig menormalkan URL (membuang `sslmode`) agar opsi SSL
+  // yang kita tentukan tidak ditimpa oleh pg-connection-string.
+  const client = new pg.Client(buildConnectionConfig(process.env.DATABASE_URL));
 
   try {
     // Konek ke database
