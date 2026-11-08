@@ -34,8 +34,8 @@ async function issueSession(res, userId) {
   const refreshToken = signRefreshToken(userId, jti); // Refresh token umur panjang
 
   await query(
-    `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
-     VALUES ($1, $2, now() + interval '30 days')`,
+    `INSERT INTO refresh_tokens (user_id, token_hash, expires_at, last_accessed_at)
+     VALUES ($1, $2, now() + interval '7 days', now())`,
     [userId, hashToken(refreshToken)], // Simpan hanya hash token
   );
 
@@ -346,7 +346,8 @@ router.post(
 
       const stored = await query(
         `SELECT id, user_id FROM refresh_tokens
-         WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > now()`,
+         WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > now()
+         AND last_accessed_at >= now() - interval '7 days'`,
         [hashToken(refreshToken)],
       );
 
@@ -354,19 +355,24 @@ router.post(
         return res.status(401).json({ code: "AUTH_EXPIRED", message: "Sesi berakhir" });
       }
 
-      // Revoke token lama
-      await query(`UPDATE refresh_tokens SET revoked_at = now() WHERE id = $1`, [
+      // Update last_accessed_at untuk inactivity tracking
+      await query(`UPDATE refresh_tokens SET last_accessed_at = now() WHERE id = $1`, [
         stored.rows[0].id,
       ]);
 
-      // Issue token baru
+      // Issue token baru (rotasi token)
       const newAccessToken = signAccessToken(stored.rows[0].user_id);
       const newJti = generateJti();
       const newRefreshToken = signRefreshToken(stored.rows[0].user_id, newJti);
 
+      // Revoke token lama dan buat token baru dengan expiry 7 hari
+      await query(`UPDATE refresh_tokens SET revoked_at = now() WHERE id = $1`, [
+        stored.rows[0].id,
+      ]);
+
       await query(
-        `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
-         VALUES ($1, $2, now() + interval '30 days')`,
+        `INSERT INTO refresh_tokens (user_id, token_hash, expires_at, last_accessed_at)
+         VALUES ($1, $2, now() + interval '7 days', now())`,
         [stored.rows[0].user_id, hashToken(newRefreshToken)],
       );
 

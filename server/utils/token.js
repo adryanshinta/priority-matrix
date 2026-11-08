@@ -10,7 +10,7 @@ import { createHash, randomBytes } from "crypto";
 // ==========================================
 
 const ACCESS_EXPIRY = "15m"; // Access token berlaku 15 menit
-const REFRESH_EXPIRY = 30 * 24 * 60 * 60; // Refresh token berlaku 30 hari (dalam detik)
+const REFRESH_EXPIRY = 7 * 24 * 60 * 60; // Refresh token berlaku 7 hari (dalam detik)
 
 // ==========================================
 // KETENTUAN COOKIE PENTING
@@ -45,7 +45,7 @@ export const setTokenCookies = (res, accessToken, refreshToken) => {
 
   res.cookie("refresh_token", refreshToken, {
     ...cookieOptions,
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 hari
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 hari
     httpOnly: true,
   });
 };

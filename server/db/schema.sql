@@ -54,12 +54,13 @@ CREATE INDEX IF NOT EXISTS idx_tasks_user_completed
 -- Menyimpan hash refresh token untuk rotasi & revoke
 -- ==========================================
 CREATE TABLE IF NOT EXISTS refresh_tokens (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- ID unik UUID otomatis
-  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- Pemilik token
-  token_hash TEXT UNIQUE NOT NULL, -- SHA-256 hash dari token (token asli tidak pernah disimpan)
-  expires_at TIMESTAMPTZ NOT NULL, -- Waktu kedaluwarsa token
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(), -- Waktu token dibuat
-  revoked_at TIMESTAMPTZ -- Waktu token dicabut (NULL = masih aktif)
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- ID unik UUID otomatis
+  user_id          UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- Pemilik token
+  token_hash       TEXT UNIQUE NOT NULL, -- SHA-256 hash dari token (token asli tidak pernah disimpan)
+  expires_at       TIMESTAMPTZ NOT NULL, -- Waktu kedaluwarsa token (absolute, 7 hari sejak dibuat)
+  last_accessed_at TIMESTAMPTZ NOT NULL DEFAULT now(), -- Waktu terakhir token diakses (untuk inactivity timeout)
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(), -- Waktu token dibuat
+  revoked_at       TIMESTAMPTZ -- Waktu token dicabut (NULL = masih aktif)
 );
 
 -- Index untuk mempercepat lookup refresh token per user
@@ -79,6 +80,9 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT;
 
 -- Kolom baru pada tasks untuk melacak waktu edit
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
+
+-- Kolom baru pada refresh_tokens untuk inactivity timeout
+ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS last_accessed_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
 -- Username unik tanpa peduli huruf besar/kecil (partial: username boleh NULL)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_lower
